@@ -25,8 +25,8 @@ from collections import namedtuple
 import itertools
 
 # maze size (cells)
-WIDTH = 80
-HEIGHT = 80
+WIDTH = 30
+HEIGHT = 30
 
 def initiate_maze():
     """Create maze by filling list with cells"""
