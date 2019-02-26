@@ -33,23 +33,23 @@ class PlotMaze():
         """draw wals of the maze"""
 
         # loop over all cells
-        for cell in self.maze:
-            if cell["walls"][0]:
-                ax.vlines(self.x_coords[cell["x"]], 
-                            self.y_coords[cell["y"]], 
-                            self.y_coords[cell["y"]+1])
-            if cell["walls"][1]:
-                ax.hlines(self.y_coords[cell["y"]+1], 
-                            self.x_coords[cell["x"]],
-                            self.x_coords[cell["x"]+1])
-            if cell["walls"][2]:
-                ax.vlines(self.x_coords[cell["x"]+1], 
-                            self.y_coords[cell["y"]], 
-                            self.y_coords[cell["y"]+1])
-            if cell["walls"][3]:
-                ax.hlines(self.y_coords[cell["y"]], 
-                            self.x_coords[cell["x"]], 
-                            self.x_coords[cell["x"]+1])
+        for i, row in self.maze.iterrows():
+            if row.left:
+                ax.vlines(self.x_coords[row.x], 
+                            self.y_coords[row.y], 
+                            self.y_coords[row.y+1])
+            if row.up:
+                ax.hlines(self.y_coords[row.y+1], 
+                            self.x_coords[row.x],
+                            self.x_coords[row.x+1])
+            if row.right:
+                ax.vlines(self.x_coords[row.x+1], 
+                            self.y_coords[row.y], 
+                            self.y_coords[row.y+1])
+            if row.down:
+                ax.hlines(self.y_coords[row.y], 
+                            self.x_coords[row.x], 
+                            self.x_coords[row.x+1])
 
 
     def layout_maze(self, ax):
