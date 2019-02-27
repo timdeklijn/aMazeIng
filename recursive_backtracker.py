@@ -26,10 +26,11 @@ from plotMaze import PlotMaze
 from collections import namedtuple
 import itertools
 import pandas as pd
+import gc
 
 # maze size (cells)
-WIDTH = 40
-HEIGHT = 40
+WIDTH = 80
+HEIGHT = 80
 
 
 def initiate_maze():
@@ -125,6 +126,7 @@ def recursive(maze):
     current_cell_index = 0
     total_list = []
     while unvisited_left(maze):
+        gc.collect()
         maze = set_visited(current_cell_index, maze)
         # find neighbours
         neighbours = find_unvisited_neighbours(maze, current_cell_index)
