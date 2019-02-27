@@ -16,8 +16,10 @@ using backtracking:
         2. Make it the current cell
 """
 
+
 __author__ = "Tim de Klijn"
-__vershion__ = "0.0"
+__vershion__ = "0.2"
+
 
 import numpy as np
 from plotMaze import PlotMaze
@@ -26,87 +28,75 @@ import itertools
 import pandas as pd
 
 # maze size (cells)
-WIDTH = 30
-HEIGHT = 30
+WIDTH = 40
+HEIGHT = 40
+
 
 def initiate_maze():
     """Create maze by filling list with cells"""
-
     # Create dataframe
     maze = pd.DataFrame(
-            columns = [
-                "visited", 
-                "left", 
-                "up", 
-                "right", 
-                "down", 
-                "x", 
-                "y"])
-
+            columns = ["visited", "left", "up", "right", 
+                       "down", "x", "y"])
     # Fill dataframe
     for x,y in itertools.product(range(WIDTH), range(HEIGHT)):
         maze = maze.append({
-            "visited": False, 
-            "left": True, 
-            "up": True, 
-            "right": True, 
-            "down": True, 
-            "x": x,
+            "visited": False, "left": True, "up": True, 
+            "right": True, "down": True, "x": x,
             "y": y}, ignore_index=True)
-
+    maze = maze.reset_index(drop=True)
     # Set entrance and exit
-    maze = set_walls(0, 0, 
+    maze = set_walls(0,
             np.array([True, True, True, False]), maze)
-    maze = set_walls(WIDTH-1, HEIGHT-1, 
+    maze = set_walls((HEIGHT*WIDTH)-1,
             np.array([True, True, False, True]), maze)
     return maze
 
 
-def set_walls(x, y, walls, maze):
+def set_walls(c, walls, maze):
     """Set wall status of a cell"""
-
-    maze.loc[((maze.x == x) & (maze.y == y)),
-            ["left", "up", "right", "down"]] *= walls
+    maze.iloc[c][["left", "up", "right", "down"]] *= walls
     return maze
 
-def set_visited(x, y, maze):
+
+def set_visited(c, maze):
     """For a certain x and y set visited to True"""
-    maze.loc[((maze.x == x) & (maze.y == y)),
-            "visited"] = True
+    maze.iloc[c].visited = True
     return maze
+
 
 def unvisited_left(maze):
     """Count unvisited cells in the maze"""
-    if maze.visited.sum() < maze.size:
+    if maze.visited.sum() < maze.shape[0]:
         return True
     else:
         return False
 
-def find_unvisited_neighbours(maze, current_cell):
+
+def find_unvisited_neighbours(maze, c):
     """
     For all possible neighbours of the current cell check if it has
     neighbours
     """
-    x, y = current_cell
+    x, y = maze.iloc[c][["x", "y"]]
     return maze[((maze.x == x-1) & (maze.y == y) & (maze.visited == False)) |
                 ((maze.x == x+1) & (maze.y == y) & (maze.visited == False)) |
                 ((maze.x == x) & (maze.y == y-1) & (maze.visited == False)) |
                 ((maze.x == x) & (maze.y == y+1) & (maze.visited == False)) ]
 
 
-def push_current_to_stack(current, stack, maze): 
+
+def push_current_to_stack(c, stack, maze): 
     """Find current cell and append to stack"""
     stack = stack.append(
-           maze.loc[(maze.x == current[0]) &
-                    (maze.y == current[1])],
-                    ignore_index = True)
+           maze.iloc[c])
     return stack
 
-def remove_walls(current_cell, new_cell_coords, maze):
-    """Remove walls between neighbours"""
-    yc, xc = current_cell
-    yn, xn = new_cell_coords
 
+def remove_walls(current_index, new_index, maze):
+    """Remove walls between neighbours"""
+    xc, yc = maze.iloc[current_index][["x", "y"]]
+    xn, yn = maze.iloc[new_index][["x", "y"]]
     # Find type of neighbour and set wall destruction
     if xc < xn:
         current = np.array([True, True, False, True])
@@ -120,10 +110,8 @@ def remove_walls(current_cell, new_cell_coords, maze):
     if yc > yn:
         current = np.array([True, True, True, False])
         new = np.array([True, False, True, True])
-
-    maze = set_walls(xc, yc, current, maze)
-    maze = set_walls(xn, yn, new, maze)
-
+    maze = set_walls(current_index, current, maze)
+    maze = set_walls(new_index, new, maze)
     return maze
 
 
@@ -131,40 +119,36 @@ def recursive(maze):
     """Perform recursive backtracker algoirthm"""
     stack = pd.DataFrame(
                 columns = [
-                    "visited", 
-                    "left", 
-                    "up", 
-                    "right", 
-                    "down", 
-                    "x", 
-                    "y"])
+                    "visited", "left", "up", "right", 
+                    "down", "x", "y"])
     # start cell
-    current_cell = [0, 0]
+    current_cell_index = 0
+    total_list = []
     while unvisited_left(maze):
-        maze = set_visited(current_cell[0], current_cell[1], maze)
+        maze = set_visited(current_cell_index, maze)
         # find neighbours
-        neighbours = find_unvisited_neighbours(maze, current_cell)
-        if neighbours.size > 0:
+        neighbours = find_unvisited_neighbours(maze, current_cell_index)
+        if neighbours.shape[0] > 0:
             # choose random new cell
-            new_cell = neighbours.sample(1, axis=0)
-            new_cell_coords = new_cell[["x", "y"]].values[0]
+            new_cell_index = neighbours.sample(1, axis=0).index.values[0]
             # push current cell to stack
-            stack = push_current_to_stack(current_cell, stack, maze)
+            stack = push_current_to_stack(current_cell_index, stack, maze)
             # remove walls
-            maze = remove_walls(current_cell, new_cell_coords, maze)
-            current_cell = new_cell_coords
-        elif stack.size > 0:
-            # Get item from stack
-            stack, c =stack.drop(stack.tail(1).index), stack.tail(1)
-            current_cell = c[["x", "y"]].values[0]
+            maze = remove_walls(current_cell_index, new_cell_index, maze)
+            current_cell_index = new_cell_index
+            total_list.append(current_cell_index)
         else:
-            break
+            # Get item from stack
+            stack, current_cell_index = (
+                stack.drop(stack.tail(1).index), 
+                stack.tail(1).index.values[0])
 
 
 if __name__ == "__main__":
     # maze with all walls 
     maze = initiate_maze()
     recursive(maze)
+    maze.to_csv("maze.csv")
 
     # plot maze
     p = PlotMaze(WIDTH, HEIGHT, maze)
